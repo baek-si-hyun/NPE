@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.app.nperest.mapper.AnswerReplyMapper">
+    <insert id="insert" parameterType="AnswerReplyDTO">
+        INSERT INTO tbl_answer_reply (replay_content, member_id, answer_id)
+        VALUES (#{replayContent}, #{memberId}, #{answerId})
+    </insert>
+
+    <select id="selectReplyList" resultType="AnswerReplyDTO" parameterType="AnswerReplyDTO">
+        SELECT a.id,
+               a.replay_content,
+               a.status,
+               a.member_id,
+               a.answer_id,
+               a.created_date,
+               a.updated_date,
+               m.member_name,
+               m.kakao_profile_url,
+               m.member_position,
+               (SELECT COUNT(*) FROM tbl_answer_reply_like WHERE reply_id = a.id AND status = 1) AS likeCnt,
+               CASE
+                   WHEN EXISTS (SELECT 1
+                                FROM tbl_answer_reply_like
+                                WHERE answer_id = a.id
+                                  AND status = 1
+                                  AND member_id = 3) THEN TRUE
+                   ELSE FALSE
+                   END                                                                           AS memberLiked
+        FROM tbl_answer_reply a
+                 LEFT JOIN tbl_member m ON a.member_id = m.id
+        WHERE a.answer_id = #{answerId}
+          AND a.status = 1
+          AND m.status = 1
+        ORDER BY a.created_date DESC
+    </select>
+
+    <select id="isLike" resultType="boolean">
+        select COALESCE(status, 0) as status
+        from tbl_answer_reply_like
+        where reply_id = #{replyId}
+          and member_id = #{memberId}
+    </select>
+
+    <update id="update" parameterType="AnswerReplyVO">
+        UPDATE tbl_answer_reply
+        SET replay_content = #{replayContent},
+            member_id      = #{memberId},
+            updated_date   = now()
+        WHERE id = #{id}
+    </update>
+
+    <update id="delete" parameterType="AnswerReplyVO">
+        UPDATE tbl_answer_reply
+        SET status       = 0,
+            member_id    = #{memberId},
+            updated_date = now()
+        WHERE id = #{id}
+    </update>
+    <select id="selectLikeUserList" resultType="memberVO" parameterType="answerReplyVO">
+        SELECT tbla.id,
+               tbla.status,
+               tbla.member_id,
+               tbla.created_date,
+               tbla.updated_date,
+               tblm.member_name,
+               tblm.kakao_profile_url,
+               tblm.member_position
+        FROM tbl_answer_reply_like tbla
+                 LEFT JOIN tbl_member tblm ON tbla.member_id = tblm.id
+        WHERE 1 = 1
+          AND reply_id = #{id}
+          AND tbla.status = 1
+          AND tblm.status = 1
+        ORDER BY created_date DESC
+    </select>
+    <insert id="replyLikeInsert">
+        INSERT INTO tbl_answer_reply_like (created_date, updated_date, member_id, reply_id)
+        VALUES (now(), now(), #{memberId}, #{id})
+    </insert>
+
+    <update id="replyLikeUpdate">
+        UPDATE tbl_answer_reply_like
+        SET updated_date = now(),
+            status       = IF(status = 1, 0, 1)
+        WHERE member_id = #{memberId}
+          AND reply_id = #{id}
+    </update>
+
+    <select id="isLikeExist" resultType="Map">
+        SELECT *
+        FROM tbl_answer_reply_like
+        WHERE member_id = #{memberId}
+          AND reply_id = #{id}
+    </select>
+
+    <select id="selectReplyCount" resultType="int">
+        select count(id)
+        from tbl_answer_reply
+        where answer_id = #{answerId}
+          and status = 1
+    </select>
+    <insert id="insertProfanity">
+        insert into tbl_reply_ai (comment, target)
+        values (#{comment}, #{target})
+    </insert>
+
+    <delete id="replyHardDelete">
+        DELETE
+        FROM tbl_answer_reply
+        WHERE id = #{id};
+    </delete>
+    <delete id="replyLikeHardDelete">
+        DELETE
+        FROM tbl_answer_reply_like
+        WHERE reply_id = #{id};
+    </delete>
+
+    <insert id="insertProfan">
+        insert into tbl_reply_ai (comment, target)
+        values (#{comment}, #{target})
+    </insert>
+</mapper>

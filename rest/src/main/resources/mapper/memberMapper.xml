@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.app.nperest.mapper.MemberMapper">
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        insert into tbl_member(kakao_profile_url, kakao_email, member_name, member_position, member_intro)
+        values (#{kakaoProfileUrl}, #{kakaoEmail}, #{memberName}, #{memberPosition}, #{memberIntro})
+    </insert>
+
+    <insert id="insertMemberSkill">
+        insert into tbl_member_skill(member_id, skill_id)
+        values (#{memberId}, #{skillId})
+    </insert>
+
+    <insert id="insertAnswerLike">
+        insert into tbl_answer_like(member_id, answer_id)
+        values (#{memberId}, #{answerId})
+    </insert>
+
+    <insert id="insertCareer" useGeneratedKeys="true" keyProperty="id">
+        insert into tbl_career(company_name, member_position, career_start, career_end, description, career_url, member_id)
+        values (#{companyName}, #{memberPosition}, #{careerStart}, #{careerEnd}, #{description}, #{careerUrl}, #{memberId})
+    </insert>
+
+    <insert id="insertCareerIndustry">
+        insert into tbl_career_industry(career_id, industry_id)
+        values (#{careerId}, #{industryId})
+    </insert>
+
+    <insert id="insertCareerSkill">
+        insert into tbl_career_skill(career_id, skill_id)
+        values (#{careerId}, #{skillId})
+    </insert>
+
+    <select id="selectByKakaoEmail" resultType="memberVO">
+        select id,
+               created_date,
+               updated_date,
+               kakao_profile_url,
+               kakao_email,
+               member_name,
+               member_position,
+               member_intro,
+               status
+        from tbl_member
+        where kakao_email = #{kakaoEmail}
+    </select>
+
+    <select id="selectById" resultType="memberVO">
+        select id,
+               created_date,
+               updated_date,
+               kakao_profile_url,
+               kakao_email,
+               member_name,
+               member_position,
+               member_intro,
+               status
+        from tbl_member
+        where id = #{id}
+    </select>
+
+    <select id="selectMemberSkill" resultType="memberSkillDTO">
+        select mk.id, member_id, skill_id, skill_name from tbl_member m
+        join tbl_member_skill mk on  m.id = mk.member_id
+        join tbl_skill s on mk.skill_id = s.id
+        where m.id = #{id}
+    </select>
+
+    <select id="selectSearchSkill" resultType="skillVO">
+        select id, skill_name from tbl_skill
+        where skill_name like concat('%', #{keyword}, '%')
+        order by skill_name
+    </select>
+
+    <select id="selectMyQuestions" resultType="QuestionDTO">
+        select id,
+               created_date,
+               updated_date,
+               question_title,
+               question_content,
+               status,
+               member_id,
+               category_id
+        from tbl_question
+        where member_id = #{memberId} and status = 1
+        order by id desc
+        limit #{pagination.rowCount}
+        offset #{pagination.startRow}
+    </select>
+
+    <select id="countMyQuestions" resultType="int">
+        select count(id) from tbl_question q
+        where member_id = #{memberId} and status = 1
+    </select>
+
+    <select id="countAnswerCountForQuestion" resultType="int">
+        select count(id)
+        from tbl_answer
+        where question_id = #{questionId} and status = 1
+    </select>
+
+    <select id="answerReplyCountForQuestion" resultType="int">
+        select count(ar.id)
+        from tbl_question q
+        join tbl_answer a on q.id = a.question_id
+        join tbl_answer_reply ar on a.id = ar.answer_id
+        where q.id = #{questionId}
+          and q.member_id = #{memberId}
+          and q.status = 1
+          and a.status = 1
+          and ar.status = 1
+    </select>
+
+    <select id="selectMyAnswer" resultType="myAnswerDTO">
+        select a.id,
+               a.created_date,
+               a.updated_date,
+               question_title,
+               question_content,
+               answer_content,
+               a.status,
+               a.member_id,
+               question_id
+        from tbl_question q
+        join tbl_answer a on q.id = a.question_id
+        where a.member_id = #{memberId}
+          and a.status = 1
+          and q.status = 1
+        order by id desc
+        limit #{pagination.rowCount} offset #{pagination.startRow}
+    </select>
+
+    <select id="answerLikeCount" resultType="int">
+        select count(al.id) from tbl_answer a
+        join tbl_answer_like al on a.id = al.answer_id
+        where a.id = #{answerId} and a.status = 1 and al.status = 1
+    </select>
+
+    <select id="answerReplyCount" resultType="int">
+        select count(ar.id) from tbl_answer a
+        join tbl_answer_reply ar on a.id = ar.answer_id
+        where a.member_id = #{memberId} and a.id = #{answerId} and a.status = 1 and ar.status = 1
+    </select>
+
+    <select id="countMyAnswer" resultType="int">
+        select count(a.id) from tbl_question q
+        join tbl_answer a on q.id = a.question_id
+        where a.member_id = #{memberId} and a.status = 1 and q.status = 1
+    </select>
+
+    <select id="selectAnswerLike" resultType="answerLikeVO">
+        select id, status, member_id, answer_id from tbl_answer_like
+        where member_id = #{memberId} and answer_id = #{answerId}
+    </select>
+
+    <select id="selectCareer" resultType="careerDTO">
+        select id, company_name, member_position, career_start, career_end, description, career_url, status, member_id from tbl_career
+        where member_id = #{memberId} and status = 1
+        order by career_start desc
+    </select>
+
+    <select id="selectCareerIndustry" resultType="careerIndustryDTO">
+        select ci.id, industry_name, career_id, industry_id from tbl_industry i
+        join tbl_career_industry ci on i.id = ci.industry_id
+        where career_id = #{careerId}
+    </select>
+
+    <select id="selectCareerSkill" resultType="CareerSkillDTO">
+        select cs.id, skill_name, career_id, skill_id from tbl_skill s
+        join tbl_career_skill cs on s.id = cs.skill_id
+        where career_id = #{careerId}
+    </select>
+
+    <update id="updateKakaoProfileUrl">
+        update tbl_member
+        set updated_date=current_timestamp, kakao_profile_url=#{kakaoProfileUrl}
+        where id = #{id}
+    </update>
+
+    <update id="updateMemberInfo">
+        update tbl_member
+        set updated_date = current_timestamp, member_name = #{memberName}, member_position = #{memberPosition}, member_intro = #{memberIntro}
+        where id = #{id}
+    </update>
+
+    <update id="updateAnswerLike">
+        update tbl_answer_like
+        set status = #{status}, updated_date = now()
+        where member_id = #{memberId} and answer_id = #{answerId}
+    </update>
+
+    <update id="updateMemberCareer">
+        update tbl_career
+        set updated_date = current_timestamp,
+            company_name = #{companyName},
+            member_position = #{memberPosition},
+            career_start = #{careerStart},
+            career_end = #{careerEnd},
+            description = #{description},
+            status = #{status}
+        where id = #{id}
+    </update>
+
+    <delete id="deleteMemberSkill">
+        delete from tbl_member_skill
+        where member_id = #{memberId} and skill_id = #{skillId}
+    </delete>
+
+    <delete id="deleteCareerIndustries">
+        delete from tbl_career_industry
+        where career_id = #{careerId} and industry_id = #{industryId}
+    </delete>
+
+    <delete id="deleteCareerSkills">
+        delete from tbl_career_skill
+        where career_id = #{careerId} and skill_id = #{skillId}
+    </delete>
+
+    <insert id="insertEducation">
+        insert into tbl_education(education_institution, education_course, education_start, education_end, education_url, description, member_id)
+        values (#{educationInstitution}, #{educationCourse}, #{educationStart}, #{educationEnd}, #{educationUrl}, #{description}, #{memberId})
+    </insert>
+
+    <select id="selectEducationByMemberId" resultType="educationVO">
+        select id,
+               created_date,
+               updated_date,
+               education_institution,
+               education_course,
+               education_start,
+               education_end,
+               education_url,
+               description,
+               status,
+               member_id
+        from tbl_education
+        where member_id = #{memberId} and status = 1
+    </select>
+
+    <update id="updateEducation">
+        update tbl_education
+        set updated_date = now(),
+            education_institution = #{educationInstitution},
+            education_course = #{educationCourse},
+            education_start = #{educationStart},
+            education_end = #{educationEnd},
+            education_url = #{educationUrl},
+            description = #{description},
+            status = #{status}
+        where id = #{id}
+    </update>
+</mapper>
